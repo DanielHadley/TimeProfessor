@@ -1,4 +1,9 @@
 ## read in the data (change to your own directory of course)
+
+setwd("/Users/dphnrome/Documents/Git/TimeProfessor/")
+
+dat <- read.csv("./timecard_10jan2015.csv", as.is=T)
+
 dat <- read.csv("C:/Users/dhadley/Documents/GitHub/TimeProfessor/timecard_10jan2015.csv",as.is=T)
 head(dat)
 
@@ -81,6 +86,27 @@ d <- d %>%
          Research = research + book + arabic,
          Service = service + other)
 
+# no sleep variable
+badSleep <- c("late","3.50am","no","not much","up early","5 hrs","4.5 hrs",
+              "allnighter","late, 2am","up late","2:30:00","6hrs","4hrs","late!")
+
+pattern <- paste(badSleep, collapse = "|") # create regex pattern
+d$badSleep <- grepl(pattern, d$Sleep)
+
+d$id <- 1
+d$time <- seq(from=1, to =365)
+
+d <- d %>%
+  mutate(event = cumsum(c(FALSE, diff(badSleep)))) %>%
+  mutate(tmpG = cumsum(c(FALSE, as.logical(diff(event))))) %>%
+  group_by(id) %>%
+  mutate(tmp_a = c(0, diff(time)) * !event,
+         tmp_b = c(diff(time), 0) * !event) %>%
+  group_by(tmpG) %>%
+  mutate(daysAfterAllNi = cumsum(tmp_a),
+         daysBeforeAllNi = rev(cumsum(rev(tmp_b)))) %>%
+  ungroup() %>%
+  select(-c(tmp_a, tmp_b, tmpG))
 
 
 ####  Visualize ####
